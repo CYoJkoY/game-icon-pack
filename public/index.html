@@ -1,23 +1,4 @@
-const http = require('http');
-const fs = require('fs');
-const path = require('path');
-
-const SVG_DIR = path.join(__dirname, 'svg');
-const PORT = 3000;
-
-function getFolders(type) {
-  return fs.readdirSync(path.join(SVG_DIR, type), { withFileTypes: true })
-    .filter(d => d.isDirectory()).map(d => d.name)
-    .sort((a, b) => (parseInt(a) || 0) - (parseInt(b) || 0));
-}
-function getSvgFiles(type, folder) {
-  return fs.readdirSync(path.join(SVG_DIR, type, folder)).filter(f => f.endsWith('.svg')).sort();
-}
-function getSvgContent(type, folder, file) {
-  return fs.readFileSync(path.join(SVG_DIR, type, folder, file), 'utf-8');
-}
-
-const HTML = `<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
@@ -110,13 +91,19 @@ const HTML = `<!DOCTYPE html>
 let D={},F='',S=48,C='#C3C3D9',Q='',P='padding',T=null;
 
 async function L(){
-  const r=await fetch('/api/folders?type='+P);
-  D=await r.json();
-  const K=Object.keys(D),t=K.reduce((s,f)=>s+D[f].length,0);
+  const r = await fetch('data.json');
+  const allData = await r.json();
+  D = allData[P] || {};
+  const K = Object.keys(D);
+  const t = K.reduce((s,f) => s + D[f].length, 0);
   info.textContent=t+' icons · '+K.length+' categories';
   folderList.innerHTML=K.map(f=>'<div class="folder-item" data-folder="'+f+'">'+f.replace(/^\d+\./,'')+'<span class="count">'+D[f].length+'</span></div>').join('');
-  folderList.querySelectorAll('.folder-item').forEach(i=>i.onclick=()=>{F=i.dataset.folder;document.querySelectorAll('.folder-item').forEach(x=>x.classList.toggle('active',x.dataset.folder===F));R()});
-  if(K.length){F=K[0];folderList.firstChild.classList.add('active');R()}
+  folderList.querySelectorAll('.folder-item').forEach(i => i.onclick = () => {
+    F = i.dataset.folder;
+    document.querySelectorAll('.folder-item').forEach(x => x.classList.toggle('active', x.dataset.folder === F));
+    R();
+  });
+  if(K.length){ F = K[0]; folderList.firstChild.classList.add('active'); R(); }
 }
 
 function R(){
@@ -132,31 +119,37 @@ function colorSvg(s,c){s=s.replace(/fill="(?!none)[^"]*"/g,'fill="'+c+'"').repla
 
 async function V(){
   const h=document.querySelectorAll('.is');
-  const r=await Promise.all([...h].map(async x=>{const res=await fetch('/api/svg/'+P+'/'+x.dataset.folder+'/'+x.dataset.file);let s=await res.text();s=colorSvg(s,C);s=s.replace(/<svg/,'<svg style="width:'+S+'px;height:'+S+'px"');return{x,s}}));
+  const r=await Promise.all([...h].map(async x=>{const res = await fetch('/api/svg/'+P+'/'+x.dataset.folder+'/'+x.dataset.file);let s=await res.text();s=colorSvg(s,C);s=s.replace(/<svg/,'<svg style="width:'+S+'px;height:'+S+'px"');return{x,s}}));
   r.forEach(({x,s})=>x.innerHTML=s)
 }
 
 async function U(){
   const h=document.querySelectorAll('.is');
   if(!h.length)return;
-  const r=await Promise.all([...h].map(async x=>{const res=await fetch('/api/svg/'+P+'/'+x.dataset.folder+'/'+x.dataset.file);let s=await res.text();s=colorSvg(s,C);s=s.replace(/<svg/,'<svg style="width:'+S+'px;height:'+S+'px"');return{x,s}}));
+  const r=await Promise.all([...h].map(async x=>{const res = await fetch('/api/svg/'+P+'/'+x.dataset.folder+'/'+x.dataset.file);let s=await res.text();s=colorSvg(s,C);s=s.replace(/<svg/,'<svg style="width:'+S+'px;height:'+S+'px"');return{x,s}}));
   r.forEach(({x,s})=>x.innerHTML=s)
 }
 
 async function K(c){
-  const r=await fetch('/api/svg/'+P+'/'+F+'/'+c.dataset.file);
+  const r = await fetch('svg/'+P+'/'+F+'/'+c.dataset.file);
   await navigator.clipboard.writeText(await r.text());
-  const t=c.querySelector('.toast');t.classList.add('show');
-  setTimeout(()=>t.classList.remove('show'),1200)
+  const t = c.querySelector('.toast');
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 1200);
 }
 
 async function W(b){
   const file=b.parentElement.dataset.file;
-  let s=colorSvg(await(await fetch('/api/svg/'+P+'/'+F+'/'+file)).text(),C);
+  let s = colorSvg(await (await fetch('svg/'+P+'/'+F+'/'+file)).text(), C);
   s=s.replace(/width="[^"]*"/,'').replace(/height="[^"]*"/,'').replace(/<svg/,'<svg width="48" height="48"');
-  const bl=new Blob([s],{type:'image/svg+xml'}),u=URL.createObjectURL(bl),a=document.createElement('a');
-  a.href=u;a.download=file;document.body.appendChild(a);a.click();
-  document.body.removeChild(a);setTimeout(()=>URL.revokeObjectURL(u),1e3)
+  const u = URL.createObjectURL(bl);
+  const a = document.createElement('a');
+  a.href = u;
+  a.download = file;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(u), 1000);
 }
 
 const track=document.getElementById('sizeTrack'),fill=document.getElementById('sizeFill'),thumb=document.getElementById('sizeThumb'),val=document.getElementById('sizeVal');
@@ -173,27 +166,4 @@ search.oninput=e=>{Q=e.target.value;document.querySelectorAll('.folder-item').fo
 L()
 </script>
 </body>
-</html>`;
-
-const server = http.createServer((req, res) => {
-  const u = new URL(req.url, 'http://localhost');
-  if (u.pathname === '/') { res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }); return res.end(HTML) }
-  if (u.pathname === '/api/folders') {
-    const t = u.searchParams.get('type') || 'padding', d = {};
-    for (const f of getFolders(t)) d[f] = getSvgFiles(t, f);
-    res.writeHead(200, { 'Content-Type': 'application/json' }); return res.end(JSON.stringify(d))
-  }
-  if (u.pathname === '/api/icons') {
-    const d = {};
-    for (const f of getFolders('padding')) d[f] = getSvgFiles('padding', f);
-    res.writeHead(200, { 'Content-Type': 'application/json' }); return res.end(JSON.stringify(d))
-  }
-  if (u.pathname.startsWith('/api/svg/')) {
-    const p = u.pathname.slice(9).split('/'), t = p[0], f = decodeURIComponent(p[1]), fl = decodeURIComponent(p[2]);
-    try { res.writeHead(200, { 'Content-Type': 'image/svg+xml' }); return res.end(getSvgContent(t, f, fl)) }
-    catch { res.writeHead(404); return res.end('Not found') }
-  }
-  res.writeHead(404); res.end('Not found')
-});
-
-server.listen(PORT, () => console.log('http://localhost:' + PORT));
+</html>
