@@ -22,7 +22,7 @@ Or download from [**Releases**](https://github.com/Nieobie/game-icon-pack/releas
 
 ### Online Preview (GitHub Pages)
 The icon pack is automatically built and deployed to GitHub Pages via GitHub Actions.  
-Visit: **https://nieobie.github.io/game-icon-pack** (or your fork's Pages URL)
+Visit: **https://nieobie.github.io/game-icon-pack** (or this fork's Pages URL: https://cyojkoy.github.io/game-icon-pack/ )
 
 Every push to the `main` branch triggers a new build, so the online preview stays up to date.
 

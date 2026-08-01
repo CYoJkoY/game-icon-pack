@@ -22,7 +22,7 @@
 
 ### 在线预览（GitHub Pages）
 图标包通过 GitHub Actions 自动构建并部署到 GitHub Pages。  
-访问：**https://nieobie.github.io/game-icon-pack**（或你 fork 后的 Pages 地址）
+访问：**https://nieobie.github.io/game-icon-pack**（或本 fork 的 Pages 地址：https://cyojkoy.github.io/game-icon-pack/ ）
 
 每次推送到 `main` 分支都会触发自动构建，在线预览会始终保持最新。
 
